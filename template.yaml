@@ -3,7 +3,7 @@ Transform: AWS::Serverless-2016-10-31
 Description: >
   python3.10
 
-  Sample SAM Template for ia-lambda
+  IA-Image Lambda Functions
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
