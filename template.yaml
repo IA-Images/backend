@@ -1,0 +1,214 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  python3.10
+
+  Sample SAM Template for ia-lambda
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Api:
+    Cors:
+      AllowMethods: "'GET,POST,OPTIONS'"
+      AllowHeaders: "'content-type'"
+      AllowOrigin: "'*'"
+  Function:
+    Timeout: 10
+
+#Resources:
+#  HelloWorldFunction:
+#    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+#    Properties:
+#      PackageType: Image
+#      Architectures:
+#        - x86_64
+#      Events:
+#        HelloWorld:
+#          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+#          Properties:
+#            Path: /hello
+#            Method: get
+
+Parameters:
+  BucketName:
+    Type: String
+    Default: "ia-lambda-images-annotations"
+  SafeImagesFolderName:
+    Type: String
+    Default: "safe"
+  InReviewImagesFolderName:
+    Type: String
+    Default: "in_review"
+
+Resources:
+  AnnotateImageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: annotations.lambda_handler
+      Runtime: python3.10
+      Architectures:
+        - x86_64
+      CodeUri: endpoints/
+      Policies:
+        - S3FullAccessPolicy:
+            BucketName: !Ref BucketName # bucket name without arn
+      FunctionName: AnnotateImageFunction
+      FunctionUrlConfig:
+        AuthType: NONE
+      Environment:
+        Variables:
+          BucketName: !Ref BucketName
+          SafeImagesFolderName: !Ref SafeImagesFolderName
+      Events:
+        annotations:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /annotations
+            Method: POST
+
+  ImageUploadFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: image_upload.lambda_handler
+      Runtime: python3.10
+      Architectures:
+        - x86_64
+      CodeUri: endpoints/
+      Policies:
+        - S3FullAccessPolicy:
+            BucketName: !Ref BucketName # bucket name without arn
+      FunctionName: ImageUploadFunction
+      FunctionUrlConfig:
+        AuthType: NONE
+      Environment:
+        Variables:
+          BucketName: !Ref BucketName
+          SafeImagesFolderName: !Ref SafeImagesFolderName
+          InReviewImagesFolderName: !Ref InReviewImagesFolderName
+      Events:
+        uploadImage:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /images
+            Method: POST
+
+  ReviewImageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: review_image.lambda_handler
+      Runtime: python3.10
+      Architectures:
+        - x86_64
+      CodeUri: endpoints/
+      Policies:
+        - S3FullAccessPolicy:
+            BucketName: !Ref BucketName # bucket name without arn
+      FunctionName: PostReviewForImageFunction
+      FunctionUrlConfig:
+        AuthType: NONE
+      Environment:
+        Variables:
+          BucketName: !Ref BucketName
+          SafeImagesFolderName: !Ref SafeImagesFolderName
+          InReviewImagesFolderName: !Ref InReviewImagesFolderName
+      Events:
+        reviewImage:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /images/review
+            Method: POST
+
+  FetchImageForLabelingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: fetch_image_for_labeling.lambda_handler
+      Runtime: python3.10
+      Architectures:
+        - x86_64
+      CodeUri: endpoints/
+      FunctionName: FetchImageForLabelingFunction
+      FunctionUrlConfig:
+        AuthType: NONE
+      Policies:
+        - S3FullAccessPolicy:
+            BucketName: !Ref BucketName # bucket name without arn
+      Environment:
+        Variables:
+          BucketName: !Ref BucketName
+          SafeImagesFolderName: !Ref SafeImagesFolderName
+      Events:
+        fetchImageForLabeling:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /images
+            Method: GET
+
+  FetchImageForReviewFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: fetch_review_image.lambda_handler
+      Runtime: python3.10
+      Architectures:
+        - x86_64
+      CodeUri: endpoints/
+      FunctionName: FetchImageForReviewFunction
+      FunctionUrlConfig:
+        AuthType: NONE
+      Policies:
+        - S3FullAccessPolicy:
+            BucketName: !Ref BucketName # bucket name without arn
+      Environment:
+        Variables:
+          BucketName: !Ref BucketName
+          InReviewImagesFolderName: !Ref InReviewImagesFolderName
+      Events:
+        fetchImageForReview:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /images/review
+            Method: GET
+
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: IA-Images Api Gateway
+      StageName: Prod
+      Cors:
+        AllowHeaders: "'*'"
+        AllowMethods: "'*'"
+        AllowOrigin: "'*'"
+      Auth:
+        AddDefaultAuthorizerToCorsPreflight: false
+      Domain:
+        DomainName: api.ia-images.ru
+        CertificateArn: arn:aws:acm:us-east-1:934973289163:certificate/db9401f9-7261-4c43-86a6-d7f8e747c9c8
+        EndpointConfiguration: EDGE # regional
+        Route53:
+          HostedZoneId: Z01616542285W9DUPCMPH
+
+
+#Outputs:
+#  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+#  # Find out more about other implicit resources you can reference within SAM
+#  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+#  HelloWorldApi:
+#    Description: "API Gateway endpoint URL for Prod stage for Hello World function"
+#    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
+#  HelloWorldFunction:
+#    Description: "Hello World Lambda Function ARN"
+#    Value: !GetAtt HelloWorldFunction.Arn
+#  HelloWorldFunctionIamRole:
+#    Description: "Implicit IAM Role created for Hello World function"
+#    Value: !GetAtt HelloWorldFunctionRole.Arn
+
+#
+#Outputs:
+#  ImageLabelerApi:
+#    Description: The URL of the API Gateway endpoint for the image labeler function
+#    Value:
+#      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/annotations

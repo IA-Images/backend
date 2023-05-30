@@ -1,0 +1,9 @@
+{ "resource": "/annotations",
+  "httpMethod": "POST",
+  "body": {
+    "id": "1234567890",
+    "singleWord": "happy",
+    "description": "A person smiling",
+    "emotions": "joyful"
+  }
+}
