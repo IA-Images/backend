@@ -31,9 +31,9 @@ def lambda_handler(event, _):
     # Check if the image exists in the bucket
     object_key = 'images/{}/{}'.format(safe_folder, image_id)
 
-    logging.info("Image id: {}.".format(image_id))
-    logging.info("Bucket: {}.".format(bucket_name))
-    logging.info("Image path: {}.".format(object_key))
+    logging.info("Image id: {}".format(image_id))
+    logging.info("Bucket: {}".format(bucket_name))
+    logging.info("Image path: {}".format(object_key))
 
     not_found_response = {
             'statusCode': 404,

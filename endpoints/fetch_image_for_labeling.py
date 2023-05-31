@@ -2,6 +2,7 @@ import json
 import boto3
 import os
 import logging
+import random
 
 if logging.getLogger().hasHandlers():
     # The Lambda environment pre-configures a handler logging to stderr. If a handler is already configured,
@@ -31,7 +32,7 @@ def lambda_handler(_, __):
     # Check if any objects are found in the safe folder
     if 'Contents' in response:
         # Get the first object from the response
-        object_key = response['Contents'][0]['Key']
+        object_key = random.choice(response['Contents'])['Key']
         object_name = object_key.split('/')[-1]  # Extract the object name
 
         # Generate a pre-signed URL for the object
