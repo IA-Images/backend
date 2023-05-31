@@ -56,9 +56,9 @@ def lambda_handler(event, _):
             return not_found_response
 
     # The image exists, save the JSON file
-    with tempfile.NamedTemporaryFile(delete=False, mode='w') as temp_file:
+    with tempfile.NamedTemporaryFile(delete=False, mode='w', encoding='utf8') as temp_file:
         temp_file_name = temp_file.name
-        json.dump(body, temp_file)
+        json.dump(body, temp_file, ensure_ascii=False)
 
     annotation_id = str(uuid.uuid4())
     annotations_path = 'annotations/{}/{}.json'.format(image_id, annotation_id)
